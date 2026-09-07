@@ -2,6 +2,19 @@
 
 AI 기반 전자명함과 커뮤니티/협업 추천 기능을 제공하는 Vue 3 + Express 웹 서비스입니다.
 
+## 문서 범위
+
+이 README는 실제 앱 소스가 있는 `2026706445/` 폴더 기준입니다. GitHub 저장소 루트의 README는 포트폴리오용 요약이고, 이 문서는 개발자가 로컬에서 실행하고 구조를 파악하는 데 필요한 세부 정보를 담습니다.
+
+## 사용 시나리오
+
+1. 개발자가 회원가입 후 전자명함 프로필을 작성합니다.
+2. 서비스는 이름, 소개, 기술 스택, 관심 분야, 링크 정보를 기반으로 공개 프로필을 구성합니다.
+3. 사용자는 QR 코드나 공개 링크로 자신의 전자명함을 공유합니다.
+4. 다른 사용자는 프로젝트 모집 글을 탐색하고 지원하거나, 프로필 페이지에서 컨택 요청을 보냅니다.
+5. 프로필 소유자는 받은 컨택 요청과 프로젝트 지원자를 승인/거절합니다.
+6. 관리자는 회원 상태, 요청 현황, 실물 명함 주문과 감사 로그를 확인합니다.
+
 ## 주요 기능
 
 - AI가 정리한 소개문이 포함된 전자명함 프로필
@@ -83,6 +96,17 @@ npm run dev
 
 프론트엔드 기본 주소는 `http://localhost:5173`입니다.
 
+## 로컬 데모 모드
+
+Supabase 프로젝트를 아직 만들지 않아도 기본 흐름은 확인할 수 있습니다.
+
+1. 백엔드에서 `ENABLE_LOCAL_AUTH=true`를 사용합니다.
+2. 프론트엔드에서 회원가입/로그인을 진행합니다.
+3. 프론트엔드 local auth fallback이 만든 `local-dev-token`으로 보호 API를 호출합니다.
+4. 백엔드는 in-memory fallback 저장소에 프로필, 프로젝트, 컨택 요청, 주문 데이터를 저장합니다.
+
+이 모드는 기능 시연과 UI 확인을 위한 개발 편의 기능입니다. 배포 환경에서는 사용하지 않습니다.
+
 ## API
 
 - `GET /api/health`
@@ -116,6 +140,17 @@ npm run dev
 
 `GET /api/me`, `POST /api/me/profile`, 지원/컨택/추천/실물 명함 주문 API는 Supabase access token이 필요합니다. Supabase 환경변수가 없는 로컬 개발 모드에서는 `ENABLE_LOCAL_AUTH=true`를 명시해야 frontend local auth fallback이 만드는 `local-dev-token`으로 보호 API를 사용할 수 있고, 데이터는 backend in-memory fallback에 저장됩니다. 배포 환경에서는 `ENABLE_LOCAL_AUTH`를 켜지 말고 실제 Supabase 환경변수를 설정해야 합니다.
 production에서는 `CORS_ORIGIN=*`과 `ENABLE_LOCAL_AUTH=true`가 서버 시작 단계에서 차단되며, API rate limit은 `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX`로 조정합니다.
+
+## 화면 구성
+
+- 홈: 서비스 소개와 주요 진입점
+- 프로필 작성/관리: 전자명함 정보, 기술 스택, 링크, 공개 slug 관리
+- 공개 프로필: 외부 사용자가 확인하는 전자명함 페이지
+- QR/실물 명함: QR 이미지 생성, 다운로드, 인쇄용 미리보기, 제작 요청
+- 프로젝트: 모집 글 목록, 내 프로젝트, 지원자 관리
+- 커뮤니티/추천: 공개 추천 사용자와 추천 이유 확인
+- 컨택 요청: 받은 요청, 보낸 요청, 승인/거절 상태 확인
+- 관리자: 회원, 요청, 감사 로그, 실물 명함 주문 관리
 
 ## Service Foundation Setup
 
@@ -168,3 +203,11 @@ npm run build
 - `frontend/vercel.json`은 SPA rewrite와 CSP, frame 차단, MIME sniffing 차단, referrer/permissions policy를 포함합니다.
 - 백엔드는 Render Node.js Web Service 배포를 우선합니다.
 - Auth와 DB는 Supabase를 사용합니다.
+
+## 운영 전 확인할 것
+
+- Supabase RLS 정책이 실제 서비스 권한 모델과 맞는지 확인합니다.
+- `SUPABASE_SERVICE_ROLE_KEY`는 프론트엔드에 절대 노출하지 않습니다.
+- production에서는 `ENABLE_LOCAL_AUTH=false` 또는 미설정 상태를 유지합니다.
+- CORS는 실제 프론트엔드 도메인만 허용합니다.
+- 실물 명함 주문 기능을 운영 결제/제작 프로세스와 연결하려면 주문 상태 전환 권한을 관리자 API로 제한합니다.
