@@ -1,0 +1,17 @@
+**/node_modules/
+**/dist/
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+**/.local-logs/
+**/.playwright-cli/
+**/test-results/
+**/.codegraph/
+**/docs/superpowers/
+superpowers/
+**/*.log
+**/*.pid
+**/.DS_Store
+**/npm-debug.log*
