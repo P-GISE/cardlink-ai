@@ -15,6 +15,32 @@ AI 기반 전자명함, 프로젝트 모집, 개발자 협업 매칭을 한 흐�
 | 외부 서비스 | Supabase Auth, Supabase PostgreSQL |
 | 로컬 대체 흐름 | Supabase 설정이 없을 때 demo/in-memory 데이터로 기능 확인 가능 |
 
+## 소스 검토 기준
+
+이 README는 저장소에 추적되는 소스, 설정, 테스트 파일을 기준으로 다시 작성했습니다. 실제 구현 근거는 `2026706445/backend`, `2026706445/frontend`, `2026706445/supabase/migrations`, `2026706445/frontend/src/**/*.test.js`, `2026706445/backend/test`에 있습니다. `node_modules`, 빌드 산출물, 실제 `.env`, 로그, 이미지 바이너리 내용은 문서 근거에서 제외했습니다.
+
+검토 결과 이 저장소는 단순 화면 목업이 아니라 백엔드 API, Supabase 스키마/RLS, Vue 프론트엔드, 관리자 흐름, 로컬 fallback 저장소, 테스트 코드가 함께 들어 있는 풀스택 프로젝트입니다. 루트 README는 포트폴리오용 요약이고, 세부 실행/DB/API 설명은 [2026706445/README.md](2026706445/README.md)에 정리되어 있습니다.
+
+## 소스 기준 기능 지도
+
+| 기능 영역 | 확인한 주요 파일 | 실제로 구현된 내용 |
+| --- | --- | --- |
+| Express API | `backend/app.js`, `backend/routes/*.js` | 인증 사용자 프로필, 프로젝트, 지원/연락 요청, 추천 결과, 실물 명함 주문, 관리자 API를 REST 형태로 제공 |
+| 인증/권한 | `backend/middleware/auth.js`, `backend/routes/admin.js` | Supabase 세션 기반 사용자 식별, 로컬 개발 인증, 관리자 전용 요청 검증 |
+| 로컬 데모 저장소 | `backend/lib/localSupabase.js` | Supabase 연결 없이도 프로필/프로젝트/추천/주문 데이터를 메모리 기반으로 확인하는 fallback 흐름 |
+| DB 설계 | `supabase/migrations/*.sql` | `profiles`, `projects`, `project_applications`, `contact_requests`, `recommendations`, `physical_card_orders`, 관리자 감사 로그와 RLS 정책 |
+| Vue 화면 | `frontend/src/router/index.js`, `frontend/src/views/*.vue` | 공개 프로필, 커뮤니티, 추천, 연락 요청, 프로젝트 관리, 관리자, 실물 카드 주문 화면 |
+| API 클라이언트 | `frontend/src/services/api.js`, `frontend/src/lib/supabase.js` | 프론트엔드에서 백엔드와 Supabase Auth를 호출하는 공통 계층 |
+| 테스트 | `backend/test/*.test.js`, `frontend/src/**/*.test.js` | API, 로컬 fallback, 라우터, 주요 화면/서비스 동작을 검증 |
+
+## 처음 검토할 때 볼 순서
+
+1. `2026706445/README.md`에서 백엔드/프론트엔드 실행 흐름을 확인합니다.
+2. `backend/app.js`와 `backend/routes`를 보면 서비스가 제공하는 API 범위가 가장 빨리 보입니다.
+3. `supabase/migrations`를 보면 프로젝트가 어떤 데이터를 다루는지 확인할 수 있습니다.
+4. `frontend/src/router/index.js`와 `frontend/src/views`를 보면 사용자가 실제로 이동하는 화면 흐름을 따라갈 수 있습니다.
+5. `backend/test`와 `frontend/src`의 `*.test.js`를 보면 작성자가 어떤 기능을 검증 대상으로 보았는지 확인할 수 있습니다.
+
 ## 이 프로젝트로 확인할 수 있는 것
 
 - 사용자가 자기소개, 기술 스택, 관심 분야를 등록해 공개 전자명함을 만들 수 있습니다.

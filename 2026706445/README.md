@@ -6,6 +6,12 @@ AI 기반 전자명함과 커뮤니티/협업 추천 기능을 제공하는 Vue 
 
 이 README는 실제 앱 소스가 있는 `2026706445/` 폴더 기준입니다. GitHub 저장소 루트의 README는 포트폴리오용 요약이고, 이 문서는 개발자가 로컬에서 실행하고 구조를 파악하는 데 필요한 세부 정보를 담습니다.
 
+## 소스 검토 기준
+
+이 문서는 `backend/src`, `backend/test`, `backend/supabase/migrations`, `frontend/src`, `frontend/src/**/*.test.js`, `backend/package.json`, `frontend/package.json`, `.env.example` 파일을 기준으로 정리했습니다. 실제 `.env`, 의존성 폴더, 빌드 산출물, 발표 이미지 자료는 실행/구조 설명의 근거에서 제외했습니다.
+
+검토 결과 CardLink AI는 전자명함 화면만 있는 프로젝트가 아니라 공개 프로필, 프로젝트 모집, 지원/컨택 요청, 추천, 실물 명함 주문, 관리자 화면, Supabase 전환 가능한 DB 스키마를 포함한 풀스택 MVP입니다.
+
 ## 사용 시나리오
 
 1. 개발자가 회원가입 후 전자명함 프로필을 작성합니다.
@@ -40,7 +46,7 @@ AI 기반 전자명함과 커뮤니티/협업 추천 기능을 제공하는 Vue 
       services/
       utils/
     supabase/migrations/
-    test/api.test.js
+    test/
   frontend/
     src/
       components/
@@ -48,7 +54,35 @@ AI 기반 전자명함과 커뮤니티/협업 추천 기능을 제공하는 Vue 
       services/
       views/
       assets/styles.css
+    src/**/*.test.js
 ```
+
+## 구현 기준 파일
+
+| 영역 | 파일 | 확인할 내용 |
+| --- | --- | --- |
+| API 조립 | `backend/src/app.js` | Helmet, CORS, rate limit, 인증 middleware, route mount 순서 |
+| 환경설정 | `backend/src/config/env.js`, `backend/.env.example` | 로컬 인증, 요청 크기, rate limit, Supabase 연결값 |
+| 인증 | `backend/src/middleware/auth.js` | Supabase token 인증과 로컬 개발 사용자 처리 |
+| 도메인 API | `backend/src/routes/*.js` | 프로필, 프로젝트, 지원, 컨택 요청, 추천, 실물 카드, 관리자 API |
+| DB migration | `backend/supabase/migrations/*.sql` | 테이블, 인덱스, RLS policy, 관리자 감사 로그 |
+| 로컬 fallback | `backend/src/db/localSupabase.js` | Supabase 없이 demo 데이터로 API 흐름 확인 |
+| 화면 라우팅 | `frontend/src/router/index.js` | 공개/로그인/관리자/주문/프로젝트 관리 화면 URL |
+| API 호출 | `frontend/src/services/api.js` | 프론트엔드에서 백엔드 API를 호출하는 공통 함수 |
+| 테스트 | `backend/test`, `frontend/src/**/*.test.js` | 백엔드 API와 프론트엔드 화면/서비스 단위 검증 |
+
+## 주요 API 지도
+
+| 범위 | 엔드포인트 예시 | 설명 |
+| --- | --- | --- |
+| 상태 | `GET /api/health` | API 서버 상태 확인 |
+| 내 정보 | `GET /api/me`, `PUT /api/me/profile` | 로그인 사용자와 프로필 저장 |
+| 공개 프로필 | `GET /api/profiles`, `GET /api/profiles/:slug` | 전자명함 목록/상세 조회 |
+| 프로젝트 | `GET /api/projects`, `POST /api/me/projects` | 프로젝트 모집 조회와 생성 |
+| 지원/컨택 | `POST /api/projects/:id/applications`, `POST /api/profiles/:slug/contact-requests` | 프로젝트 지원과 프로필 컨택 요청 |
+| 추천 | `GET /api/recommendations/public`, `GET /api/me/recommendation-runs` | 추천 결과와 추천 실행 기록 |
+| 실물 카드 | `POST /api/me/physical-card-orders`, `GET /api/admin/physical-card-orders` | 실물 명함 주문과 관리자 처리 |
+| 관리자 | `GET /api/admin/overview`, `GET /api/admin/members`, `GET /api/admin/audit-logs` | 운영 대시보드, 회원, 감사 로그 |
 
 ## 실행 방법
 
