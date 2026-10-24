@@ -2,12 +2,22 @@ name: Build and deployment checks
 on:
   pull_request:
   push:
-    branches: [codex/deployment-prep-20261024]
+    branches: [main, codex/deployment-prep-20261024]
 permissions:
   contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic-ci-only
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     env:
       SUPABASE_URL: https://synthetic.invalid
       SUPABASE_ANON_KEY: synthetic-public-key
@@ -24,6 +34,10 @@ jobs:
           cache-dependency-path: |
             2026706445/backend/package-lock.json
             2026706445/frontend/package-lock.json
+      - name: PostgreSQL profile privacy red-green regression
+        run: |
+          docker cp 2026706445/backend ${{ job.services.postgres.id }}:/work
+          docker exec ${{ job.services.postgres.id }} psql -U postgres -X -v ON_ERROR_STOP=1 -f /work/test/sql/profile-privacy.sql
       - run: npm ci && npm test
         working-directory: 2026706445/backend
       - run: npm ci && npm test && npm run build
@@ -35,7 +49,8 @@ jobs:
         run: |
           set -euo pipefail
           docker compose -f compose.production.yaml config --quiet
-          docker compose -f compose.production.yaml up --build -d --wait
+          docker compose -f compose.production.yaml build --build-arg REVISION_SHA="$GITHUB_SHA"
+          docker compose -f compose.production.yaml up -d --wait
           curl --fail http://127.0.0.1:14000/api/health
           curl --fail http://127.0.0.1:14000/auth/callback | grep '<div id="app">'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:14000/api/me)" = 401
@@ -54,3 +69,34 @@ jobs:
           path: container.log
       - if: always()
         run: docker compose -f compose.production.yaml down
+      - name: Build actual Cardlink release (required public Supabase configuration)
+        if: github.event_name == 'push'
+        env:
+          SUPABASE_URL: ${{ secrets.CARDLINK_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.CARDLINK_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY" || { echo 'Configure CARDLINK_SUPABASE_URL and CARDLINK_SUPABASE_ANON_KEY before releasing'; exit 1; }
+          docker compose -f compose.production.yaml build --build-arg REVISION_SHA="$GITHUB_SHA"
+          docker compose -f compose.production.yaml up -d --no-build --wait
+          curl --fail http://127.0.0.1:14000/api/health
+          curl --fail http://127.0.0.1:14000/auth/callback | grep '<div id="app">'
+          docker compose -f compose.production.yaml down
+      - name: Package verified immutable image
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect cardlink:ci --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$GITHUB_SHA"
+          docker tag cardlink:ci cardlink:$GITHUB_SHA
+          mkdir -p release
+          docker save cardlink:$GITHUB_SHA | gzip > release/image.tar.gz
+          (cd release && sha256sum image.tar.gz > image.sha256)
+          echo "$GITHUB_SHA" > release/revision.txt
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: five-sites-app-${{ github.sha }}
+          path: release/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

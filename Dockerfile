@@ -9,6 +9,8 @@ RUN test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY"
 RUN VITE_SUPABASE_URL="$SUPABASE_URL" VITE_SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" VITE_API_BASE_URL=/api npm run build
 
 FROM node:24-bookworm-slim
+ARG REVISION_SHA
+LABEL org.opencontainers.image.revision=$REVISION_SHA
 ENV NODE_ENV=production PORT=4000
 WORKDIR /app/backend
 COPY 2026706445/backend/package*.json ./
