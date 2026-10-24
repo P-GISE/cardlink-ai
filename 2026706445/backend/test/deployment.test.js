@@ -29,6 +29,8 @@ test("production serves SPA and API on one origin without demo authentication", 
     const app = createApp({ env: loadEnv(production), staticDir, logger: false });
     await request(app).get("/").expect(200).expect(/Cardlink fixture/);
     await request(app).get("/auth/callback").expect(200).expect(/Cardlink fixture/);
+    await request(app).get("/profiles/jane.doe").expect(200).expect(/Cardlink fixture/);
+    await request(app).get("/profiles/jane-doe").expect(200).expect(/Cardlink fixture/);
     await request(app).get("/asset.js").expect(200);
     await request(app).get("/missing.js").expect(404);
     await request(app).get("/api/unknown").expect(404).expect("Content-Type", /json/);
@@ -39,6 +41,30 @@ test("production serves SPA and API on one origin without demo authentication", 
     assert.match(health.headers["content-security-policy"], /connect-src 'self' https:\/\/synthetic.invalid/);
     const blocked = await request(app).get("/api/health").set("Origin", "https://unapproved.invalid").expect(500);
     assert.equal(blocked.headers["access-control-allow-origin"], undefined);
+  } finally {
+    rmSync(staticDir, { recursive: true, force: true });
+  }
+});
+
+test("static assets and SPA routes do not consume or inherit API rate limits", async () => {
+  const staticDir = mkdtempSync(join(tmpdir(), "cardlink-rate-limit-"));
+  try {
+    writeFileSync(join(staticDir, "index.html"), "<!doctype html><title>Cardlink fixture</title>");
+    writeFileSync(join(staticDir, "asset.js"), "console.log('fixture')");
+    const app = createApp({
+      env: loadEnv({ ...production, RATE_LIMIT_MAX: "1" }), staticDir, logger: false
+    });
+    for (const path of ["/", "/asset.js", "/auth/callback"]) {
+      const response = await request(app).get(path).expect(200);
+      assert.equal(response.headers["ratelimit-limit"], undefined);
+    }
+    await request(app).get("/api/health").expect(200);
+    await request(app).get("/api/health").expect(429);
+    for (const path of ["/", "/asset.js", "/profiles/jane.doe"]) {
+      await request(app).get(path).expect(200);
+    }
+    await request(app).get("/missing.js").expect(404);
+    await request(app).get("/api/health").expect(429);
   } finally {
     rmSync(staticDir, { recursive: true, force: true });
   }

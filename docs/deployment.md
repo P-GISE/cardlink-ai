@@ -25,7 +25,7 @@ SPA `/auth/callback` 경로를 Express가 제공한다. CSP는 설정된 Supabas
 
 Docker health는 프로세스 응답 검사이며 Supabase 연결/스키마 준비 성공을 의미하지 않는다.
 로컬 저장소는 사용하지 않는다. 데이터는 외부 Supabase에만 저장되며 컨테이너 파일시스템은 읽기 전용이다. Compose 기본 네트워크는 `cardlink_default`이고 DB 호스트 포트/공유 볼륨은 없다.
-현재 메모리 기반 rate limiter는 단일 인스턴스 기준이다. proxy 뒤에서는 접속 IP가 proxy IP로 보이므로 공유 한도가 적용된다. 복제 운영은 별도 설계가 필요하다.
+현재 메모리 기반 API rate limiter는 단일 인스턴스 기준이다. HTML/정적 자산에는 API 한도를 적용하지 않는다. proxy 뒤에서는 접속 IP가 proxy IP로 보이므로 API 공유 한도가 적용된다. 복제 운영은 별도 설계가 필요하다.
 
 ## 검증 및 롤백
 

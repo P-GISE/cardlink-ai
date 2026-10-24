@@ -64,7 +64,7 @@ export const createApp = (options = {}) => {
       }
     })
   );
-  app.use(createRateLimitMiddleware(env.rateLimit));
+  app.use("/api", createRateLimitMiddleware(env.rateLimit));
   app.use(express.json({ limit: env.requestBodyLimit || "32kb" }));
   app.use(createAuthMiddleware(supabaseAuth));
 
@@ -84,7 +84,7 @@ export const createApp = (options = {}) => {
   if (options.staticDir) {
     app.use(express.static(options.staticDir));
     app.get(/^(?!\/api(?:\/|$)).*/, (req, res, next) => {
-      if (req.path.includes(".")) return next();
+      if (req.path.includes(".") && !/^\/profiles\/[^/]+\/?$/.test(req.path)) return next();
       res.sendFile("index.html", { root: options.staticDir });
     });
   }
