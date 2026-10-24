@@ -1,0 +1,56 @@
+name: Build and deployment checks
+on:
+  pull_request:
+  push:
+    branches: [codex/deployment-prep-20261024]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://synthetic.invalid
+      SUPABASE_ANON_KEY: synthetic-public-key
+      SUPABASE_SERVICE_ROLE_KEY: synthetic-server-secret
+      CORS_ORIGIN: https://cardlink.example.test
+      APP_PORT: "14000"
+      IMAGE_TAG: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            2026706445/backend/package-lock.json
+            2026706445/frontend/package-lock.json
+      - run: npm ci && npm test
+        working-directory: 2026706445/backend
+      - run: npm ci && npm test && npm run build
+        working-directory: 2026706445/frontend
+        env:
+          VITE_SUPABASE_URL: https://synthetic.invalid
+          VITE_SUPABASE_ANON_KEY: synthetic-public-key
+      - name: Production image and HTTP smoke (no external requests)
+        run: |
+          set -euo pipefail
+          docker compose -f compose.production.yaml config --quiet
+          docker compose -f compose.production.yaml up --build -d --wait
+          curl --fail http://127.0.0.1:14000/api/health
+          curl --fail http://127.0.0.1:14000/auth/callback | grep '<div id="app">'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:14000/api/me)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:14000/api/unknown)" = 404
+          docker compose -f compose.production.yaml exec -T app sh -c '! grep -R "synthetic-server-secret\|127.0.0.1:4000/api" /app/frontend/dist'
+          docker compose -f compose.production.yaml exec -T app sh -c 'test -z "$(find /app -name ".env*")"'
+          if docker run --rm --network none -e NODE_ENV=production cardlink:ci; then exit 1; fi
+          if docker run --rm --network none -e NODE_ENV=production -e ENABLE_LOCAL_AUTH=true -e SUPABASE_URL -e SUPABASE_ANON_KEY -e SUPABASE_SERVICE_ROLE_KEY -e CORS_ORIGIN cardlink:ci; then exit 1; fi
+      - name: Capture container diagnostics
+        if: always()
+        run: docker compose -f compose.production.yaml logs > container.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: container-diagnostics
+          path: container.log
+      - if: always()
+        run: docker compose -f compose.production.yaml down

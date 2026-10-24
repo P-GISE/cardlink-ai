@@ -33,6 +33,10 @@ export const loadEnv = (source = process.env) => {
   if (nodeEnv === "production") {
     requireKeys(source);
 
+    if (!source.CORS_ORIGIN?.trim() || corsOrigins.length === 0) {
+      throw new Error("CORS_ORIGIN is required in production.");
+    }
+
     if (enableLocalAuth) {
       throw new Error("ENABLE_LOCAL_AUTH must not be enabled in production.");
     }

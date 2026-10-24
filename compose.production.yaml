@@ -1,0 +1,28 @@
+name: cardlink
+services:
+  app:
+    image: cardlink:${IMAGE_TAG:?Set IMAGE_TAG to a reviewed commit}
+    build:
+      context: .
+      args:
+        SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL}
+        SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?Set public SUPABASE_ANON_KEY}
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      ENABLE_LOCAL_AUTH: "false"
+      CORS_ORIGIN: ${CORS_ORIGIN:?Set approved HTTPS origin}
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?Set SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set server-only service role key}
+    ports:
+      - "127.0.0.1:${APP_PORT:?Set an unused loopback port}:4000"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
