@@ -16,6 +16,7 @@ const profileRows = [
     contact_policy: "approval_required",
     is_published: true,
     phone: "010-9999-9999",
+    business_address: "Synthetic public business address",
     website_url: "https://hidden.example.test",
     email: "hidden@example.test",
     github_url: "https://github.com/hidden",
@@ -27,7 +28,10 @@ const createMockSupabase = () => ({
   from(table) {
     assert.equal(table, "profiles");
     return {
-      select() {
+      select(columns) {
+        for (const column of ["phone", "email", "website_url", "github_url", "portfolio_url", "user_id"]) {
+          assert.ok(!columns.split(", ").includes(column), `Public queries must not fetch ${column}`);
+        }
         return {
           eq(column, value) {
             if (column === "is_published") {
@@ -75,6 +79,9 @@ test("GET /api/profiles returns published profiles without contact fields", asyn
   assert.equal(response.body.items[0].phone, undefined);
   assert.equal(response.body.items[0].websiteUrl, undefined);
   assert.equal(response.body.items[0].githubUrl, undefined);
+  assert.equal(response.body.items[0].portfolioUrl, undefined);
+  assert.equal(response.body.items[0].userId, undefined);
+  assert.equal(response.body.items[0].businessAddress, "Synthetic public business address");
 });
 
 test("GET /api/profiles/:slug does not expose contact fields before approval", async () => {
@@ -97,4 +104,6 @@ test("GET /api/profiles/:slug does not expose contact fields before approval", a
   assert.equal(response.body.githubUrl, undefined);
   assert.equal(response.body.portfolioUrl, undefined);
   assert.equal(response.body.contact, undefined);
+  assert.equal(response.body.userId, undefined);
+  assert.equal(response.body.businessAddress, "Synthetic public business address");
 });
