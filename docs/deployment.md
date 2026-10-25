@@ -35,3 +35,14 @@ CI는 PR/준비 브랜치에서만 합성 URL과 키로 테스트·이미지 빌
 
 배포 전 이전 이미지 태그 및 환경 파일을 보관한다. 롤백은 이전 `IMAGE_TAG`와 대응하는 공개 Supabase 설정으로 복원한 뒤 `docker compose --env-file .env.production -f compose.production.yaml up -d --no-build --wait`를 실행한다.
 앱 롤백은 DB 스키마를 되돌리지 않는다. DB 복원은 별도 백업/호환성 검토 후 수행한다. `down -v`나 자동 초기화를 실행하지 않는다.
+
+## 공개 인증 제공자 상태
+
+현재 Cardlink 주소는 `https://cardlink.pigs0516.com`이며 이메일 인증은
+`/auth/callback?next=%2Fprofile%2Fedit`로 돌아온다. 전용 Supabase 프로젝트의
+URL 설정에서 이 callback을 허용해야 한다.
+
+로그인 화면은 프로젝트의 공개 Auth 설정을 조회한 뒤 실제 활성화된 Google·GitHub
+버튼만 켠다. 미구성 제공자나 설정 조회 실패 시 버튼을 비활성화하고 이메일 가입·로그인은
+유지한다. OAuth 앱을 등록하거나 Supabase 제공자 설정을 변경하는 기능은 아니다.
+2026-10-25 실제 설정 확인 시 소셜 제공자 두 개는 꺼져 있었고 이메일 인증은 별도 검증했다.

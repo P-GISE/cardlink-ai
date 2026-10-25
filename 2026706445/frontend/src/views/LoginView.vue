@@ -11,17 +11,18 @@
         <div class="panel-heading">
           <p class="eyebrow">Social</p>
           <h2>소셜 계정으로 시작</h2>
-          <p>Google 또는 GitHub 계정으로 빠르게 로그인합니다.</p>
+          <p>사용 가능한 소셜 계정으로 로그인합니다. 이메일로 가입하거나 로그인해 주세요.</p>
         </div>
 
         <div class="stack">
-          <button type="button" class="secondary full" @click="loginWith('google')">
+          <button type="button" class="secondary full" :disabled="!enabledOAuthProviders.includes('google')" @click="loginWith('google')">
             Google로 계속하기
           </button>
-          <button type="button" class="secondary full" @click="loginWith('github')">
+          <button type="button" class="secondary full" :disabled="!enabledOAuthProviders.includes('github')" @click="loginWith('github')">
             GitHub로 계속하기
           </button>
         </div>
+        <p v-if="enabledOAuthProviders.length === 0">현재 소셜 로그인을 사용할 수 없습니다.</p>
       </section>
 
       <section class="auth-panel">
@@ -121,9 +122,10 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import PageHeader from "../components/PageHeader.vue";
+import { getEnabledOAuthProviders } from "../services/supabase.js";
 import {
   sanitizeRedirectPath,
   signInWithPassword,
@@ -145,6 +147,11 @@ const termsAccepted = ref(false);
 const privacyAccepted = ref(false);
 const message = ref("");
 const isError = ref(false);
+const enabledOAuthProviders = ref([]);
+
+onMounted(async () => {
+  enabledOAuthProviders.value = await getEnabledOAuthProviders();
+});
 
 const redirectPath = () => sanitizeRedirectPath(route.query.redirect);
 
@@ -182,13 +189,15 @@ const setAuthMode = (mode) => {
   isError.value = false;
 };
 
-const loginWith = (provider) =>
-  runAuth(async () => {
+const loginWith = (provider) => {
+  if (!enabledOAuthProviders.value.includes(provider)) return;
+  return runAuth(async () => {
     const result = await signInWithProvider(undefined, provider, {
       redirectPath: redirectPath()
     });
     await finishAuth(result, "소셜 로그인 페이지로 이동합니다.");
   });
+};
 
 const handleLoginSubmit = () =>
   runAuth(async () => {
