@@ -38,6 +38,13 @@ export const createApp = (options = {}) => {
 
   app.use(
     helmet({
+      contentSecurityPolicy: {
+        directives: {
+          connectSrc: ["'self'", ...(options.staticDir && env.supabase?.url ? [new URL(env.supabase.url).origin] : [])],
+          imgSrc: ["'self'", "data:", "https:"],
+          frameAncestors: ["'none'"]
+        }
+      },
       crossOriginResourcePolicy: false
     })
   );
@@ -57,7 +64,7 @@ export const createApp = (options = {}) => {
       }
     })
   );
-  app.use(createRateLimitMiddleware(env.rateLimit));
+  app.use("/api", createRateLimitMiddleware(env.rateLimit));
   app.use(express.json({ limit: env.requestBodyLimit || "32kb" }));
   app.use(createAuthMiddleware(supabaseAuth));
 
@@ -73,6 +80,14 @@ export const createApp = (options = {}) => {
   app.use("/api", createPhysicalCardsRouter({ supabase }));
   app.use("/api", createRecommendationsRouter({ supabase }));
   app.use("/api", createAdminRouter({ supabase }));
+
+  if (options.staticDir) {
+    app.use(express.static(options.staticDir));
+    app.get(/^(?!\/api(?:\/|$)).*/, (req, res, next) => {
+      if (req.path.includes(".") && !/^\/profiles\/[^/]+\/?$/.test(req.path)) return next();
+      res.sendFile("index.html", { root: options.staticDir });
+    });
+  }
 
   app.use((req, res) => {
     res.status(404).json({

@@ -102,7 +102,7 @@ export const createProfilesService = (supabase) => ({
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "id, slug, display_name, role, headline, bio, location, avatar_url, organization, position, phone, website_url, business_address, card_tagline, contact_policy, is_published, email, github_url, portfolio_url, profile_skills(name), profile_interests(name), profile_projects(name, description, period, project_url)"
+        "id, slug, display_name, role, headline, bio, location, avatar_url, organization, position, business_address, card_tagline, contact_policy, is_published, profile_skills(name), profile_interests(name), profile_projects(name, description, period, project_url)"
       )
       .eq("is_published", true)
       .order("updated_at", { ascending: false });
@@ -116,7 +116,7 @@ export const createProfilesService = (supabase) => ({
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "id, slug, display_name, role, headline, bio, location, avatar_url, organization, position, phone, website_url, business_address, card_tagline, contact_policy, is_published, email, github_url, portfolio_url, profile_skills(name), profile_interests(name), profile_projects(name, description, period, project_url)"
+        "id, slug, display_name, role, headline, bio, location, avatar_url, organization, position, business_address, card_tagline, contact_policy, is_published, profile_skills(name), profile_interests(name), profile_projects(name, description, period, project_url)"
       )
       .eq("slug", slug)
       .eq("is_published", true)

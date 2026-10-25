@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const currentDir = dirname(fileURLToPath(import.meta.url));
 
 const readSource = (fileName) => readFileSync(resolve(currentDir, fileName), "utf8");
-const readStyles = () => readFileSync(resolve(currentDir, "../assets/styles.css"), "utf8");
+const readStyles = () => readFileSync(resolve(currentDir, "../assets/styles.css"), "utf8").replace(/\r\n/g, "\n");
 
 describe("physical card views", () => {
   it("renders a QR-based physical card builder", () => {
