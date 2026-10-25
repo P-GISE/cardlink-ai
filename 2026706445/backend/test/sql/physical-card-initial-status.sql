@@ -18,6 +18,7 @@ $$;
 \ir ../../supabase/migrations/202605310001_admin_audit_logs.sql
 \ir ../../supabase/migrations/202606090001_physical_card_print_specs.sql
 \ir ../../supabase/migrations/202610240001_private_profile_reads.sql
+\ir ../../supabase/migrations/202610260001_physical_card_initial_status.sql
 grant usage on schema public, auth to anon, authenticated, service_role;
 grant select, insert, update, delete on all tables in schema public to anon, authenticated, service_role;
 insert into auth.users values ('00000000-0000-0000-0000-000000000001');
