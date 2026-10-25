@@ -98,3 +98,11 @@ test("loadEnv parses production rate limit settings", () => {
     max: 75
   });
 });
+
+test("proxy trust accepts only explicit IP addresses", () => {
+  const env = loadEnv({ ENABLE_LOCAL_AUTH: "true", TRUST_PROXY_IPS: "127.0.0.1,172.30.0.1" });
+  assert.deepEqual(env.trustedProxyIps, ["127.0.0.1", "172.30.0.1"]);
+  for (const value of ["true", "0.0.0.0/0", "uniquelocal"]) {
+    assert.throws(() => loadEnv({ ENABLE_LOCAL_AUTH: "true", TRUST_PROXY_IPS: value }), /explicit IP/);
+  }
+});

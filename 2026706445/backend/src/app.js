@@ -35,6 +35,7 @@ export const createApp = (options = {}) => {
   const supabaseAuth = options.supabaseAuth || createSupabaseAnonClient(env);
 
   app.disable("x-powered-by");
+  app.set("trust proxy", env.trustedProxyIps || []);
 
   app.use(
     helmet({
@@ -64,6 +65,7 @@ export const createApp = (options = {}) => {
       }
     })
   );
+  app.use("/api", healthRouter);
   app.use("/api", createRateLimitMiddleware(env.rateLimit));
   app.use(express.json({ limit: env.requestBodyLimit || "32kb" }));
   app.use(createAuthMiddleware(supabaseAuth));
@@ -72,7 +74,6 @@ export const createApp = (options = {}) => {
     app.use(morgan("dev"));
   }
 
-  app.use("/api", healthRouter);
   app.use("/api", createProfilesRouter({ supabase }));
   app.use("/api", createProjectsRouter({ supabase }));
   app.use("/api", createApplicationsRouter({ supabase }));

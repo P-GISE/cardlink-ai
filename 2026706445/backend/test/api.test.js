@@ -102,13 +102,33 @@ test("API rate limit returns 429 after the configured request budget", async () 
     supabaseAuth: { auth: { getUser: async () => ({ data: { user: null }, error: null }) } }
   });
 
-  await request(app).get("/api/health").expect(200);
-  await request(app).get("/api/health").expect(200);
+  await request(app).get("/api/unknown").expect(404);
+  await request(app).get("/api/unknown").expect(404);
 
-  const response = await request(app).get("/api/health").expect(429);
+  const response = await request(app).get("/api/unknown").expect(429);
 
   assert.equal(response.body.message, "Too many requests. Please try again later.");
   assert.equal(response.headers["retry-after"], "60");
+  await request(app).get("/api/health").expect(200);
+});
+
+test("trusted ingress keeps separate client budgets and ignores a spoofed leftmost address", async () => {
+  const app = createApp({
+    logger: false,
+    env: {
+      corsOrigins: ["https://cardlink.example"], nodeEnv: "test",
+      trustedProxyIps: ["127.0.0.1", "::1"],
+      rateLimit: { windowMs: 60_000, max: 1 },
+      supabase: { url: "x", anonKey: "x", serviceRoleKey: "x" }
+    },
+    supabase: { from() { throw new Error("unknown routes must not access data"); } },
+    supabaseAuth: { auth: { getUser: async () => ({ data: { user: null }, error: null }) } }
+  });
+  await request(app).get("/api/unknown").set("X-Forwarded-For", "198.51.100.10").expect(404);
+  await request(app).get("/api/unknown").set("X-Forwarded-For", "198.51.100.11").expect(404);
+  await request(app).get("/api/unknown")
+    .set("X-Forwarded-For", "203.0.113.20, 198.51.100.10").expect(429);
+  assert.equal(app.get("trust proxy fn")("203.0.113.20"), false);
 });
 
 test("production error responses do not expose internal exception messages", async () => {

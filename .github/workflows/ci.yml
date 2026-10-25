@@ -38,6 +38,8 @@ jobs:
         run: |
           docker cp 2026706445/backend ${{ job.services.postgres.id }}:/work
           docker exec ${{ job.services.postgres.id }} psql -U postgres -X -v ON_ERROR_STOP=1 -f /work/test/sql/profile-privacy.sql
+      - name: PostgreSQL initial order status authorization
+        run: docker exec ${{ job.services.postgres.id }} psql -U postgres -X -v ON_ERROR_STOP=1 -f /work/test/sql/physical-card-initial-status.sql
       - run: npm ci && npm test
         working-directory: 2026706445/backend
       - run: npm ci && npm test && npm run build
