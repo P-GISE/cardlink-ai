@@ -58,13 +58,14 @@ test("static assets and SPA routes do not consume or inherit API rate limits", a
       const response = await request(app).get(path).expect(200);
       assert.equal(response.headers["ratelimit-limit"], undefined);
     }
-    await request(app).get("/api/health").expect(200);
-    await request(app).get("/api/health").expect(429);
+    await request(app).get("/api/unknown").expect(404);
+    await request(app).get("/api/unknown").expect(429);
     for (const path of ["/", "/asset.js", "/profiles/jane.doe"]) {
       await request(app).get(path).expect(200);
     }
     await request(app).get("/missing.js").expect(404);
-    await request(app).get("/api/health").expect(429);
+    await request(app).get("/api/health").expect(200);
+    await request(app).get("/api/unknown").expect(429);
   } finally {
     rmSync(staticDir, { recursive: true, force: true });
   }

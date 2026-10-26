@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 const REQUIRED_KEYS = ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
 
 const parseOrigins = (value) => {
@@ -29,6 +31,11 @@ export const loadEnv = (source = process.env) => {
   const missingSupabaseKeys = getMissingKeys(source);
   const enableLocalAuth = source.ENABLE_LOCAL_AUTH === "true";
   const corsOrigins = parseOrigins(source.CORS_ORIGIN);
+  const trustedProxyIps = (source.TRUST_PROXY_IPS ?? "127.0.0.1,::1")
+    .split(",").map((value) => value.trim()).filter(Boolean);
+  if (trustedProxyIps.length > 8 || trustedProxyIps.some((value) => !isIP(value))) {
+    throw new Error("TRUST_PROXY_IPS must contain at most eight explicit IP addresses.");
+  }
 
   if (nodeEnv === "production") {
     requireKeys(source);
@@ -54,6 +61,7 @@ export const loadEnv = (source = process.env) => {
     port: Number(source.PORT || 4000),
     nodeEnv,
     corsOrigins,
+    trustedProxyIps,
     requestBodyLimit: source.REQUEST_BODY_LIMIT || "32kb",
     rateLimit: {
       windowMs: parsePositiveInteger(source.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000),

@@ -156,12 +156,12 @@ export const createContactService = (supabase) => ({
 
     const { data: target, error: targetError } = await supabase
       .from("profiles")
-      .select("id, slug, display_name, email, github_url, portfolio_url, contact_policy")
+      .select("id, slug, display_name, email, github_url, portfolio_url, contact_policy, is_published")
       .eq("slug", slug)
       .maybeSingle();
 
     if (targetError) throw targetError;
-    if (!target) throw notFound("Profile not found.");
+    if (!target || target.is_published !== true) throw notFound("Profile not found.");
     if (target.id === requester.id) throw badRequest("You cannot request contact with your own profile.");
 
     const isInstant = target.contact_policy === "instant";

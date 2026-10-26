@@ -11,6 +11,7 @@ services:
       NODE_ENV: production
       PORT: "4000"
       ENABLE_LOCAL_AUTH: "false"
+      TRUST_PROXY_IPS: ${TRUST_PROXY_IPS:-127.0.0.1,::1}
       CORS_ORIGIN: ${CORS_ORIGIN:?Set approved HTTPS origin}
       SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?Set SUPABASE_ANON_KEY}

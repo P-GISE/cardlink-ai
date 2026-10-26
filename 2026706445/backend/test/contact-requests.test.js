@@ -4,7 +4,7 @@ import request from "supertest";
 import { createApp } from "../src/app.js";
 import { createLocalSupabaseServiceClient } from "../src/db/localSupabase.js";
 
-const createMockSupabase = (targetPolicy = "instant") => ({
+const createMockSupabase = (targetPolicy = "instant", published = true) => ({
   from(table) {
     if (table === "profiles") {
       return {
@@ -32,7 +32,8 @@ const createMockSupabase = (targetPolicy = "instant") => ({
                       email: "target@example.test",
                       github_url: "https://github.com/target",
                       portfolio_url: "https://target.example.test",
-                      contact_policy: targetPolicy
+                      contact_policy: targetPolicy,
+                      is_published: published
                     },
                     error: null
                   })
@@ -99,7 +100,7 @@ const createMockSupabase = (targetPolicy = "instant") => ({
   }
 });
 
-const createAuthedApp = (targetPolicy) =>
+const createAuthedApp = (targetPolicy, published = true) =>
   createApp({
     logger: false,
     env: {
@@ -107,7 +108,7 @@ const createAuthedApp = (targetPolicy) =>
       nodeEnv: "test",
       supabase: { url: "x", anonKey: "x", serviceRoleKey: "x" }
     },
-    supabase: createMockSupabase(targetPolicy),
+    supabase: createMockSupabase(targetPolicy, published),
     supabaseAuth: {
       auth: {
         getUser: async () => ({
@@ -141,6 +142,18 @@ test("approval-required contact policy creates a pending request", async () => {
   assert.equal(response.body.contact, undefined);
   assert.equal(response.body.request.requestType, "approval_request");
 });
+
+for (const policy of ["instant", "approval_required"]) {
+  test(`unpublished ${policy} profiles reject new contact requests without exposing contact`, async () => {
+    const response = await request(createAuthedApp(policy, false))
+      .post("/api/profiles/target/contact-requests")
+      .set("Authorization", "Bearer token")
+      .send({ message: "synthetic privacy regression" })
+      .expect(404);
+    assert.equal(response.body.contact, undefined);
+    assert.equal(response.body.request, undefined);
+  });
+}
 
 test("profile owner can approve a contact request", async () => {
   const response = await request(createAuthedApp("approval_required"))
