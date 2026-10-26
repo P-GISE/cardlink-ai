@@ -43,7 +43,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Runtime image security gate regressions
-        run: python -m unittest discover -s scripts/security -p test_image_gate.py -v
+        run: python -m unittest discover -s scripts/security -p 'test_*.py' -v
       - name: PostgreSQL profile privacy red-green regression
         run: |
           docker cp 2026706445/backend ${{ job.services.postgres.id }}:/work
@@ -73,7 +73,7 @@ jobs:
           if docker run --rm --network none -e NODE_ENV=production -e ENABLE_LOCAL_AUTH=true -e SUPABASE_URL -e SUPABASE_ANON_KEY -e SUPABASE_SERVICE_ROLE_KEY -e CORS_ORIGIN cardlink:ci; then exit 1; fi
       - name: Gate the synthetic production image OS and Node libraries
         run: |
-          docker run --rm --network none --entrypoint sh cardlink:ci -ec 'for tool in npm npx yarn yarnpkg; do test -z "$(command -v "$tool")"; done; node --version >/dev/null'
+          docker run --rm --network none --entrypoint sh cardlink:ci -ec 'test -s /etc/alpine-release; for tool in npm npx yarn yarnpkg; do test -z "$(command -v "$tool")"; done; node --version >/dev/null'
           image_id=$(docker image inspect cardlink:ci --format '{{.Id}}')
           bash scripts/security/scan-image.sh "$image_id"
       - if: always()
@@ -94,7 +94,7 @@ jobs:
       - name: Gate the actual public Supabase release image OS and Node libraries
         if: github.event_name == 'push'
         run: |
-          docker run --rm --network none --entrypoint sh cardlink:ci -ec 'for tool in npm npx yarn yarnpkg; do test -z "$(command -v "$tool")"; done; node --version >/dev/null'
+          docker run --rm --network none --entrypoint sh cardlink:ci -ec 'test -s /etc/alpine-release; for tool in npm npx yarn yarnpkg; do test -z "$(command -v "$tool")"; done; node --version >/dev/null'
           image_id=$(docker image inspect cardlink:ci --format '{{.Id}}')
           bash scripts/security/scan-image.sh "$image_id"
       - name: Package verified immutable image
