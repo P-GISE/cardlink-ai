@@ -39,6 +39,11 @@ jobs:
           cache-dependency-path: |
             2026706445/backend/package-lock.json
             2026706445/frontend/package-lock.json
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Runtime image security gate regressions
+        run: python -m unittest discover -s scripts/security -p test_image_gate.py -v
       - name: PostgreSQL profile privacy red-green regression
         run: |
           docker cp 2026706445/backend ${{ job.services.postgres.id }}:/work
@@ -66,14 +71,11 @@ jobs:
           docker compose -f compose.production.yaml exec -T app sh -c 'test -z "$(find /app -name ".env*")"'
           if docker run --rm --network none -e NODE_ENV=production cardlink:ci; then exit 1; fi
           if docker run --rm --network none -e NODE_ENV=production -e ENABLE_LOCAL_AUTH=true -e SUPABASE_URL -e SUPABASE_ANON_KEY -e SUPABASE_SERVICE_ROLE_KEY -e CORS_ORIGIN cardlink:ci; then exit 1; fi
-      - name: Capture container diagnostics
-        if: always()
-        run: docker compose -f compose.production.yaml logs > container.log 2>&1
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: container-diagnostics
-          path: container.log
+      - name: Gate the synthetic production image OS and Node libraries
+        run: |
+          docker run --rm --network none --entrypoint sh cardlink:ci -ec 'for tool in npm npx yarn yarnpkg; do test -z "$(command -v "$tool")"; done; node --version >/dev/null'
+          image_id=$(docker image inspect cardlink:ci --format '{{.Id}}')
+          bash scripts/security/scan-image.sh "$image_id"
       - if: always()
         run: docker compose -f compose.production.yaml down
       - name: Build actual Cardlink release (required public Supabase configuration)
@@ -89,6 +91,12 @@ jobs:
           curl --fail http://127.0.0.1:14000/api/health
           curl --fail http://127.0.0.1:14000/auth/callback | grep '<div id="app">'
           docker compose -f compose.production.yaml down
+      - name: Gate the actual public Supabase release image OS and Node libraries
+        if: github.event_name == 'push'
+        run: |
+          docker run --rm --network none --entrypoint sh cardlink:ci -ec 'for tool in npm npx yarn yarnpkg; do test -z "$(command -v "$tool")"; done; node --version >/dev/null'
+          image_id=$(docker image inspect cardlink:ci --format '{{.Id}}')
+          bash scripts/security/scan-image.sh "$image_id"
       - name: Package verified immutable image
         if: github.event_name == 'push'
         run: |
