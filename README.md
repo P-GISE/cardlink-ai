@@ -1,5 +1,13 @@
 # CardLink AI
 
+## 공개 주소와 자동배포
+
+대표 주소는 [cardlink.pigs0516.com](https://cardlink.pigs0516.com/)입니다. 전용 `cardlink-aws` 터널이 Cardlink 앱으로 연결됩니다.
+
+운영 `main`의 PR 병합 → `Build and deployment checks` 성공 → `Cardlink verified event deploy` 순서로 해당 앱만 배포합니다. 서버 전체 재부팅·DB migration·Supabase 정책·메일 설정 변경은 자동배포에 포함하지 않습니다.
+
+2026-10-29 첫 기준 승격과 GitHub 경유 정확 리비전 복구 검증을 마치고 기존 주기 조회 timer를 해제했습니다. 배포 권한·실제 리비전 검증·실패 복구는 [배포 문서](docs/deployment.md)를 참고하세요.
+
 AI 기반 전자명함, 프로젝트 모집, 개발자 협업 매칭을 한 흐름으로 묶은 풀스택 웹 서비스입니다.
 
 이 저장소의 실제 애플리케이션 소스는 `2026706445/` 안에 있습니다. 상위 폴더에는 발표/후보 이미지 자료가 함께 있고, GitHub에서는 이 README를 첫 진입점으로 사용합니다.
