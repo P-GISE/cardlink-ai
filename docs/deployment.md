@@ -47,10 +47,14 @@ URL 설정에서 이 callback을 허용해야 한다.
 유지한다. OAuth 앱을 등록하거나 Supabase 제공자 설정을 변경하는 기능은 아니다.
 2026-10-25 실제 설정 확인 시 소셜 제공자 두 개는 꺼져 있었고 이메일 인증은 별도 검증했다.
 
-## GitHub 이벤트 배포 전환 준비 (2026-10-29)
+## GitHub 이벤트 배포 (2026-10-29)
 
 .github/workflows/deploy-event.yml은 main push의 'Build and deployment checks' 완료 이벤트와 수동 recovery를 받는다. 두 경로 모두 GitHub REST에서 정확한 run ID를 다시 읽어 고정 저장소·head repository·main·push·ci.yml·완료·성공·SHA를 검증한다. PR 또는 다른 branch의 run은 배포 대상이 아니다. 특권 job은 소스를 checkout하지 않는다.
 
 프로젝트 전용 CARDLINK_DEPLOY_SSH_KEY, CARDLINK_DEPLOY_KNOWN_HOSTS, CARDLINK_DEPLOY_TARGET 세 repository secret과 S2 제한 SSH entry 설치가 필요하다. 고정 command는 'event-deploy-cardlink <SHA40> <run ID>'이며 strict host pinning과 일시 key 파일 0600/종료 정리를 사용한다. 같은 프로젝트 실행은 취소 없이 queue에 쌓이고 원격 lock timeout(exit 75 및 정확한 오류)만 최대 20분 재시도한다. 성공 receipt의 요청 SHA/run, 실제 배포 run/artifact run 및 image digest를 검사한다. 수동 recovery에는 성공한 main push CI의 정확한 run ID와 SHA를 입력한다.
 
-현재 이 변경은 로컬 candidate 준비 단계다. 이 작업에서 key/secret 등록, S2 설치, 실제 workflow_run 배포와 receipt/health 검증은 아직 수행하지 않았다. 운영 권한과 보호 tree의 네 파일 delta를 별도 검토한 후 merge해야 한다. 실제 새 push CI → 이벤트 → 제한 command → 배포 SHA/run/image/health 및 실패·lock retry·수동 recovery를 확인하기 전 기존 timer를 유지한다. 기존 security/runtime gate와 앱·DB·SMTP·Supabase 정책을 변경하지 않는다.
+프로젝트 전용 제한키·secret3개와 고정 진입점을 설치했다. 임의 명령은 exit64로 거절된다. 최초 보호 tree의 정확 네 파일 변경을 검토하고 `0074ca9dae6b818dc6ce7ba0211b9465f12bd629` / CI40822120638 / image44047a0f…를 승격했다. 첫 잠금 경합은 앱 변경 전에 차단됐고, 같은 inode를 최대60초 기다리는 검토된 별도 승격본으로 처리했다. 독립 후속22항목과 수동 recovery40824688891이 성공한 뒤 `five-sites-deploy@cardlink.timer`를 disabled/inactive로 전환했다. 처음 후속 관측의 다른 컨테이너 전체 해시 차이는 기록했으며, 추가 앱 변경 없이 다음 관측에서 원래 해시와 일치했다. 정확한 원인은 미확정이다.
+
+이후 배포는 main의 성공 CI 완료 이벤트를 사용한다. 이 문서 변경의 실제 신규 자동배포 결과는 별도 운영 증거로 확인하며 앞선 수동 recovery와 구분한다. 기존 보안·runtime gate 및 앱·DB·SMTP·Supabase 정책은 유지한다. 운영 브랜치가 바뀌면 고정 receiver·서버 설정을 함께 검토해야 한다.
+
+이벤트 연결에 문제가 생기면 기존 timer를 다시 켜는 방안과 해당 프로젝트의 제한키·secret만 회수하는 방안을 구분한다. 앱 문제는 이전 앱 이미지로 복구하고, DB·Supabase 정책은 앱 롤백에 포함하지 않는다. 보호 경로 변경은 일반 이벤트가 자동 승인하지 않는다.
