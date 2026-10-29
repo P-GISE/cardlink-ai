@@ -46,3 +46,11 @@ URL 설정에서 이 callback을 허용해야 한다.
 버튼만 켠다. 미구성 제공자나 설정 조회 실패 시 버튼을 비활성화하고 이메일 가입·로그인은
 유지한다. OAuth 앱을 등록하거나 Supabase 제공자 설정을 변경하는 기능은 아니다.
 2026-10-25 실제 설정 확인 시 소셜 제공자 두 개는 꺼져 있었고 이메일 인증은 별도 검증했다.
+
+## GitHub 이벤트 배포 전환 준비 (2026-10-29)
+
+.github/workflows/deploy-event.yml은 main push의 'Build and deployment checks' 완료 이벤트와 수동 recovery를 받는다. 두 경로 모두 GitHub REST에서 정확한 run ID를 다시 읽어 고정 저장소·head repository·main·push·ci.yml·완료·성공·SHA를 검증한다. PR 또는 다른 branch의 run은 배포 대상이 아니다. 특권 job은 소스를 checkout하지 않는다.
+
+프로젝트 전용 CARDLINK_DEPLOY_SSH_KEY, CARDLINK_DEPLOY_KNOWN_HOSTS, CARDLINK_DEPLOY_TARGET 세 repository secret과 S2 제한 SSH entry 설치가 필요하다. 고정 command는 'event-deploy-cardlink <SHA40> <run ID>'이며 strict host pinning과 일시 key 파일 0600/종료 정리를 사용한다. 같은 프로젝트 실행은 취소 없이 queue에 쌓이고 원격 lock timeout(exit 75 및 정확한 오류)만 최대 20분 재시도한다. 성공 receipt의 요청 SHA/run, 실제 배포 run/artifact run 및 image digest를 검사한다. 수동 recovery에는 성공한 main push CI의 정확한 run ID와 SHA를 입력한다.
+
+현재 이 변경은 로컬 candidate 준비 단계다. 이 작업에서 key/secret 등록, S2 설치, 실제 workflow_run 배포와 receipt/health 검증은 아직 수행하지 않았다. 운영 권한과 보호 tree의 네 파일 delta를 별도 검토한 후 merge해야 한다. 실제 새 push CI → 이벤트 → 제한 command → 배포 SHA/run/image/health 및 실패·lock retry·수동 recovery를 확인하기 전 기존 timer를 유지한다. 기존 security/runtime gate와 앱·DB·SMTP·Supabase 정책을 변경하지 않는다.
