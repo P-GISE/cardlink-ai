@@ -1,4 +1,4 @@
-FROM node:24-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS frontend
+FROM node:26-alpine3.24@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS frontend
 RUN apk upgrade --no-cache && apk add --no-cache openssl ca-certificates
 WORKDIR /build
 COPY 2026706445/frontend/package*.json ./
@@ -9,7 +9,7 @@ ARG SUPABASE_ANON_KEY
 RUN test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY"
 RUN VITE_SUPABASE_URL="$SUPABASE_URL" VITE_SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" VITE_API_BASE_URL=/api npm run build
 
-FROM node:24-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
+FROM node:26-alpine3.24@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94
 RUN apk upgrade --no-cache && apk add --no-cache openssl ca-certificates
 ARG REVISION_SHA
 LABEL org.opencontainers.image.revision=$REVISION_SHA
