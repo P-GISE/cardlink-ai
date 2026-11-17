@@ -36,6 +36,11 @@ const createMockSupabase = () => ({
           eq(column, value) {
             if (column === "is_published") {
               return {
+                neq(column, value) {
+                  assert.equal(column, 'admin_hidden');
+                  assert.equal(value, true);
+                  return this;
+                },
                 order: async () => ({
                   data: profileRows.filter((row) => row.is_published === value),
                   error: null
@@ -46,6 +51,11 @@ const createMockSupabase = () => ({
               return {
                 eq() {
                   return {
+                    neq(column, value) {
+                      assert.equal(column, 'admin_hidden');
+                      assert.equal(value, true);
+                      return this;
+                    },
                     single: async () => ({ data: profileRows[0], error: null })
                   };
                 }

@@ -40,6 +40,7 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.CARDLINK_DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.CARDLINK_DEPLOY_KNOWN_HOSTS }}
           GH_TOKEN: ${{ github.token }}
+          PROFILE_MODERATION_MIGRATION: ${{ vars.CARDLINK_PROFILE_MODERATION_MIGRATION }}
         shell: bash
         run: |
           set -euo pipefail
@@ -53,6 +54,8 @@ jobs:
           unset DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS
           python3 - <<'PY'
           import json, os, re, subprocess, sys, time, urllib.request
+          if os.environ.get('PROFILE_MODERATION_MIGRATION') != '202611180001':
+              raise SystemExit('deployment_blocked: apply and verify profile moderation migration 202611180001 before setting CARDLINK_PROFILE_MODERATION_MIGRATION')
           with open(os.environ['GITHUB_EVENT_PATH']) as stream:
               event = json.load(stream)
           repo = 'P-GISE/cardlink-ai'

@@ -51,8 +51,8 @@ const toMember = (profile) => ({
   email: profile.email,
   role: profile.role,
   headline: profile.headline,
-  isPublished: Boolean(profile.is_published),
-  status: profile.is_published ? "published" : "hidden",
+  isPublished: Boolean(profile.is_published) && !profile.admin_hidden,
+  status: profile.is_published && !profile.admin_hidden ? "published" : "hidden",
   hasProfile: Boolean(profile.id),
   createdAt: profile.created_at,
   updatedAt: profile.updated_at
@@ -243,7 +243,7 @@ export const createAdminService = (supabase) => {
           {
             key: "publishedProfiles",
             label: "공개 전자명함",
-            value: data.profiles.filter((profile) => profile.is_published).length
+            value: data.profiles.filter((profile) => profile.is_published && !profile.admin_hidden).length
           },
           {
             key: "pendingContacts",
@@ -296,6 +296,7 @@ export const createAdminService = (supabase) => {
         .from("profiles")
         .update({
           is_published: payload.isPublished,
+          admin_hidden: !payload.isPublished,
           updated_at: new Date().toISOString()
         })
         .eq("id", profileId)

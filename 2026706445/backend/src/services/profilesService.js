@@ -105,6 +105,7 @@ export const createProfilesService = (supabase) => ({
         "id, slug, display_name, role, headline, bio, location, avatar_url, organization, position, business_address, card_tagline, contact_policy, is_published, profile_skills(name), profile_interests(name), profile_projects(name, description, period, project_url)"
       )
       .eq("is_published", true)
+      .neq("admin_hidden", true)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;
@@ -120,9 +121,10 @@ export const createProfilesService = (supabase) => ({
       )
       .eq("slug", slug)
       .eq("is_published", true)
+      .neq("admin_hidden", true)
       .single();
 
-    if (error) return null;
+    if (error || !data) return null;
 
     return toPublicProfile(data);
   },
