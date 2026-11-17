@@ -24,7 +24,7 @@ class WorkflowTests(unittest.TestCase):
         self.success = subprocess.CompletedProcess([], 0, json.dumps(receipt), '')
         self.busy = subprocess.CompletedProcess([], 75, '', 'event_deploy_failed:lock_timeout\n')
 
-    def execute_inline(self, replies, *, manual=False, clock=None):
+    def execute_inline(self, replies, *, manual=False, clock=None, migration='202611180001'):
         text = (HERE / '../../.github/workflows/deploy-event.yml').read_text()
         source = textwrap.dedent(text.split("python3 - <<'PY'", 1)[1].rsplit('          PY', 1)[0])
         event = dict(self.event)
@@ -39,6 +39,7 @@ class WorkflowTests(unittest.TestCase):
             with patch.dict(os.environ, {'GITHUB_EVENT_PATH': str(path),
                                          'GITHUB_EVENT_NAME': 'workflow_dispatch' if manual else 'workflow_run',
                                          'GITHUB_REF': 'refs/heads/main', 'GH_TOKEN': 'fixture',
+                                         'PROFILE_MODERATION_MIGRATION': migration,
                                          'DEPLOY_TARGET': 'fixture@host', 'DEPLOY_KEY_FILE': '/fixture/key',
                                          'DEPLOY_HOSTS_FILE': '/fixture/known_hosts'}), \
                     patch.object(subprocess, 'run', side_effect=replies) as self.ssh, \
@@ -46,6 +47,15 @@ class WorkflowTests(unittest.TestCase):
                     patch.object(time, 'monotonic', side_effect=clock or (lambda: 0)), \
                     patch.object(urllib.request, 'urlopen', return_value=response) as self.api:
                 exec(compile(source, 'workflow-inline', 'exec'), {})
+
+    def test_missing_or_wrong_migration_blocks_all_deployment_paths(self):
+        for manual in (False, True):
+            for migration in ('', '202605310001'):
+                with self.subTest(manual=manual, migration=migration), self.assertRaises(SystemExit) as error:
+                    self.execute_inline([], manual=manual, migration=migration)
+                self.assertIn('deployment_blocked', str(error.exception))
+                self.ssh.assert_not_called()
+                self.api.assert_not_called()
 
     def test_remote_lock_timeout_retries_then_verifies_receipt(self):
         self.execute_inline([self.busy, self.success])
