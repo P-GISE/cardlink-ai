@@ -68,5 +68,36 @@ do $$ begin
 end $$;
 reset role;
 \echo PASS: backend public, approved-contact, and admin data access preserved
+insert into public.admin_audit_logs(action,target_type,target_id,metadata)
+select 'member_publication_updated','profile',id::text,'{"isPublished":false}'::jsonb
+from public.profiles where slug = 'owner-draft';
+\ir ../../supabase/migrations/202611180001_admin_profile_moderation.sql
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
+do $$ begin
+  assert (select admin_hidden from public.profiles where slug='owner-draft'), 'historical admin hide must migrate';
+  update public.profiles set is_published=true where slug='owner-draft';
+  assert (select admin_hidden from public.profiles where slug='owner-draft'), 'owner publication must preserve moderation';
+  begin
+    update public.profiles set admin_hidden=false where slug='owner-draft';
+    raise exception 'TEST: owner cleared moderation';
+  exception when raise_exception then
+    if sqlerrm = 'TEST: owner cleared moderation' then raise; end if;
+  end;
+  begin
+    delete from public.profiles where slug='owner-draft';
+    raise exception 'TEST: owner deleted hidden profile';
+  exception when raise_exception then
+    if sqlerrm = 'TEST: owner deleted hidden profile' then raise; end if;
+  end;
+end $$;
+reset role;
+set local role service_role;
+update public.profiles set admin_hidden=false where slug='owner-draft';
+do $$ begin
+  assert not (select admin_hidden from public.profiles where slug='owner-draft'), 'server can restore moderation';
+end $$;
+reset role;
+\echo PROFILE_MODERATION_SQL_PASS
 rollback;
 \echo PROFILE_PRIVACY_SQL_PASS

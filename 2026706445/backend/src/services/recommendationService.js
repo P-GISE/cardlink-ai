@@ -59,6 +59,7 @@ export const createRecommendationService = (supabase) => ({
       .from("profiles")
       .select("id, slug, display_name, role, headline, location, is_published")
       .eq("is_published", true)
+      .neq("admin_hidden", true)
       .neq("id", profile.id)
       .order("updated_at", { ascending: false })
       .limit(5);

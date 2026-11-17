@@ -30,6 +30,10 @@ const createMockSupabase = () => ({
                 assert.equal(value, true);
                 return {
                   neq(excludedColumn, excludedValue) {
+                    if (excludedColumn === 'admin_hidden') {
+                      assert.equal(excludedValue, true);
+                      return this;
+                    }
                     assert.equal(excludedColumn, "id");
                     assert.equal(excludedValue, "profile-1");
                     return {
